@@ -1,11 +1,11 @@
 package com.racasrpg.race;
 
 import com.racasrpg.RacasRpg;
+import com.racasrpg.net.ModNetwork;
 
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -14,6 +14,7 @@ import net.neoforged.neoforge.common.Tags;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 @EventBusSubscriber(modid = RacasRpg.MODID)
 public class RaceEvents {
@@ -22,11 +23,6 @@ public class RaceEvents {
     public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             RaceManager.applyEffects(player);
-            if (!RaceManager.get(player).hasRace()) {
-                player.sendSystemMessage(Component.literal(
-                        "Escolha sua raca com /raca escolher <humano|elfo|anao|orc>. Veja detalhes com /raca info.")
-                        .withStyle(ChatFormatting.GOLD));
-            }
         }
     }
 
@@ -44,22 +40,33 @@ public class RaceEvents {
         }
     }
 
+    /** Abre o menu de escolha de raça ~3 segundos depois de entrar no mundo, se o jogador ainda não tem raça. */
+    @SubscribeEvent
+    public static void onPlayerTick(PlayerTickEvent.Post event) {
+        if (event.getEntity() instanceof ServerPlayer player
+                && player.tickCount == 60
+                && !RaceManager.get(player).hasRace()) {
+            ModNetwork.openMenu(player);
+        }
+    }
+
     @SubscribeEvent
     public static void onKill(LivingDeathEvent event) {
-        if (!(event.getEntity() instanceof Enemy)) {
-            return;
-        }
         if (!(event.getSource().getEntity() instanceof ServerPlayer player)) {
             return;
         }
 
-        RaceManager.addProgress(player, Race.MissionType.KILL_HOSTILE);
+        if (event.getEntity() instanceof Enemy) {
+            RaceManager.addProgress(player, Race.MissionType.KILL_HOSTILE);
 
-        Entity direct = event.getSource().getDirectEntity();
-        if (direct instanceof Projectile) {
-            RaceManager.addProgress(player, Race.MissionType.KILL_RANGED);
-        } else if (direct == player) {
-            RaceManager.addProgress(player, Race.MissionType.KILL_MELEE);
+            Entity direct = event.getSource().getDirectEntity();
+            if (direct instanceof Projectile) {
+                RaceManager.addProgress(player, Race.MissionType.KILL_RANGED);
+            } else if (direct == player) {
+                RaceManager.addProgress(player, Race.MissionType.KILL_MELEE);
+            }
+        } else if (event.getEntity() instanceof Animal) {
+            RaceManager.addProgress(player, Race.MissionType.KILL_ANIMAL);
         }
     }
 

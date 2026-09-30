@@ -3,6 +3,7 @@ package com.racasrpg;
 import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
+import com.racasrpg.net.ModNetwork;
 import com.racasrpg.race.ModAttachments;
 
 import net.neoforged.bus.api.IEventBus;
@@ -15,6 +16,7 @@ public class RacasRpg {
 
     public RacasRpg(IEventBus modEventBus) {
         ModAttachments.ATTACHMENT_TYPES.register(modEventBus);
-        LOGGER.info("Racas RPG carregado.");
+        modEventBus.addListener(ModNetwork::register);
+        LOGGER.info("Raças RPG carregado.");
     }
 }

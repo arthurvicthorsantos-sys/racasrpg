@@ -41,7 +41,7 @@ public final class RaceManager {
     // Escolher / evoluir / resetar
     // ---------------------------------------------------------------------------------------------
 
-    /** Escolhe a raca (so quando o jogador ainda nao tem uma). Devolve false se ja tinha raca. */
+    /** Escolhe a raça (só quando o jogador ainda não tem uma). Devolve false se já tinha raça. */
     public static boolean choose(ServerPlayer player, Race race) {
         if (get(player).hasRace()) {
             return false;
@@ -50,27 +50,26 @@ public final class RaceManager {
         applyEffects(player);
         player.level().playSound(null, player.blockPosition(), SoundEvents.PLAYER_LEVELUP,
                 SoundSource.PLAYERS, 1.0F, 1.0F);
-        player.sendSystemMessage(msg("Voce agora e um " + race.displayName() + "!", ChatFormatting.GOLD));
-        describeStage(player, race, 0);
+        player.sendSystemMessage(msg("Você agora é um " + race.displayName() + "!", ChatFormatting.GOLD));
         return true;
     }
 
-    /** Tenta evoluir para o proximo estagio. Envia mensagens explicando o resultado. */
+    /** Tenta evoluir para o próximo estágio. Envia mensagens explicando o resultado. */
     public static void evolve(ServerPlayer player) {
         RaceData data = get(player);
         Race race = Race.byId(data.race());
         if (race == null) {
-            player.sendSystemMessage(msg("Voce ainda nao escolheu uma raca. Use /raca escolher <raca>.", ChatFormatting.RED));
+            player.sendSystemMessage(msg("Você ainda não escolheu uma raça.", ChatFormatting.RED));
             return;
         }
         Race.Stage stage = race.stage(data.stage());
         Race.Mission mission = stage.mission();
         if (mission == null || data.stage() >= race.lastStageIndex()) {
-            player.sendSystemMessage(msg("Voce ja alcancou a forma maxima: " + stage.name() + ".", ChatFormatting.YELLOW));
+            player.sendSystemMessage(msg("Você já alcançou a forma máxima: " + stage.name() + ".", ChatFormatting.YELLOW));
             return;
         }
         if (data.progress() < mission.target()) {
-            player.sendSystemMessage(msg("Missao incompleta: " + mission.type().description()
+            player.sendSystemMessage(msg("Missão incompleta: " + mission.type().description()
                     + " - " + data.progress() + "/" + mission.target(), ChatFormatting.RED));
             return;
         }
@@ -81,21 +80,20 @@ public final class RaceManager {
         player.setHealth(player.getMaxHealth());
         player.level().playSound(null, player.blockPosition(), SoundEvents.PLAYER_LEVELUP,
                 SoundSource.PLAYERS, 1.0F, 0.8F);
-        player.sendSystemMessage(msg("Voce evoluiu para " + race.stage(next).name() + "!", ChatFormatting.GOLD));
-        describeStage(player, race, next);
+        player.sendSystemMessage(msg("Você evoluiu para " + race.stage(next).name() + "!", ChatFormatting.GOLD));
     }
 
-    /** Remove a raca do jogador (uso administrativo / testes). */
+    /** Remove a raça do jogador (uso administrativo / testes). */
     public static void reset(ServerPlayer player) {
         set(player, RaceData.EMPTY);
         applyEffects(player);
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Progresso das missoes
+    // Progresso das missões
     // ---------------------------------------------------------------------------------------------
 
-    /** Soma 1 ao progresso se a missao atual do jogador for deste tipo. */
+    /** Soma 1 ao progresso se a missão atual do jogador for deste tipo. */
     public static void addProgress(ServerPlayer player, Race.MissionType type) {
         RaceData data = get(player);
         Race race = Race.byId(data.race());
@@ -108,11 +106,11 @@ public final class RaceManager {
         int progress = data.progress() + 1;
         set(player, new RaceData(data.race(), data.stage(), progress));
 
-        player.displayClientMessage(msg("Missao: " + progress + "/" + mission.target()
+        player.displayClientMessage(msg("Missão: " + progress + "/" + mission.target()
                 + " - " + type.description(), ChatFormatting.GREEN), true);
 
         if (progress >= mission.target()) {
-            player.sendSystemMessage(msg("Missao completa! Use /raca evoluir para evoluir.", ChatFormatting.GOLD));
+            player.sendSystemMessage(msg("Missão completa! Use /raca para abrir o menu e evoluir.", ChatFormatting.GOLD));
             player.level().playSound(null, player.blockPosition(), SoundEvents.EXPERIENCE_ORB_PICKUP,
                     SoundSource.PLAYERS, 1.0F, 1.0F);
         }
@@ -122,7 +120,7 @@ public final class RaceManager {
     // Efeitos (atributos)
     // ---------------------------------------------------------------------------------------------
 
-    /** Remove todos os modificadores da mod e aplica os do estagio atual. Pode ser chamado a qualquer momento. */
+    /** Remove todos os modificadores da mod e aplica os do estágio atual. Pode ser chamado a qualquer momento. */
     public static void applyEffects(Player player) {
         for (Map.Entry<String, Holder<Attribute>> entry : trackedAttributes().entrySet()) {
             AttributeInstance instance = player.getAttribute(entry.getValue());
@@ -148,7 +146,7 @@ public final class RaceManager {
         }
     }
 
-    /** Todos os atributos que qualquer raca/estagio pode modificar (chave -> atributo). */
+    /** Todos os atributos que qualquer raça/estágio pode modificar (chave -> atributo). */
     private static Map<String, Holder<Attribute>> trackedAttributes() {
         Map<String, Holder<Attribute>> map = new HashMap<>();
         for (Race race : Race.values()) {
@@ -162,55 +160,33 @@ public final class RaceManager {
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Mensagens
+    // Mensagens no chat (comandos /raca status e /raca info)
     // ---------------------------------------------------------------------------------------------
 
-    /** Mostra os bonus do estagio e a missao seguinte. */
-    public static void describeStage(ServerPlayer player, Race race, int stageIndex) {
-        Race.Stage stage = race.stage(stageIndex);
-        player.sendSystemMessage(msg("Estagio: " + stage.name(), ChatFormatting.AQUA));
-        if (stage.bonuses().isEmpty()) {
-            player.sendSystemMessage(msg("  (sem bonus neste estagio)", ChatFormatting.GRAY));
-        }
-        for (Race.Bonus bonus : stage.bonuses()) {
-            ChatFormatting color = bonus.amount() >= 0 ? ChatFormatting.GREEN : ChatFormatting.RED;
-            player.sendSystemMessage(msg("  " + bonus.text(), color));
-        }
-        if (stage.mission() != null) {
-            player.sendSystemMessage(msg("Proxima missao: " + stage.mission().text(), ChatFormatting.YELLOW));
-        } else {
-            player.sendSystemMessage(msg("Forma maxima alcancada.", ChatFormatting.YELLOW));
-        }
-    }
-
-    /** Estado atual do jogador (comando /raca). */
+    /** Estado atual do jogador em texto (comando /raca status). */
     public static void sendStatus(ServerPlayer player) {
         RaceData data = get(player);
         Race race = Race.byId(data.race());
         if (race == null) {
-            player.sendSystemMessage(msg("Voce ainda nao tem uma raca. Use /raca info para ver as racas "
-                    + "e /raca escolher <humano|elfo|anao|orc>.", ChatFormatting.YELLOW));
+            player.sendSystemMessage(msg("Você ainda não tem uma raça. Use /raca para abrir o menu.", ChatFormatting.YELLOW));
             return;
         }
         Race.Stage stage = race.stage(data.stage());
-        player.sendSystemMessage(msg("Raca: " + race.displayName() + " (" + stage.name() + ")", ChatFormatting.GOLD));
+        player.sendSystemMessage(msg("Raça: " + race.displayName() + " (" + stage.name() + ")", ChatFormatting.GOLD));
         for (Race.Bonus bonus : stage.bonuses()) {
             ChatFormatting color = bonus.amount() >= 0 ? ChatFormatting.GREEN : ChatFormatting.RED;
             player.sendSystemMessage(msg("  " + bonus.text(), color));
         }
         Race.Mission mission = stage.mission();
         if (mission == null) {
-            player.sendSystemMessage(msg("Forma maxima alcancada.", ChatFormatting.YELLOW));
+            player.sendSystemMessage(msg("Forma máxima alcançada.", ChatFormatting.YELLOW));
         } else {
-            player.sendSystemMessage(msg("Missao: " + mission.type().description() + " - "
+            player.sendSystemMessage(msg("Missão: " + mission.type().description() + " - "
                     + data.progress() + "/" + mission.target(), ChatFormatting.YELLOW));
-            if (data.progress() >= mission.target()) {
-                player.sendSystemMessage(msg("Missao completa! Use /raca evoluir.", ChatFormatting.GOLD));
-            }
         }
     }
 
-    /** Lista todas as racas e estagios (comando /raca info). */
+    /** Lista todas as raças e estágios em texto (comando /raca info). */
     public static void sendInfo(ServerPlayer player) {
         for (Race race : Race.values()) {
             player.sendSystemMessage(msg("== " + race.displayName() + " (" + race.id() + ") ==", ChatFormatting.GOLD));
@@ -218,7 +194,7 @@ public final class RaceManager {
                 Race.Stage stage = race.stage(i);
                 StringBuilder line = new StringBuilder("  " + (i + 1) + ". " + stage.name() + ": ");
                 if (stage.bonuses().isEmpty()) {
-                    line.append("sem bonus");
+                    line.append("sem bônus");
                 } else {
                     for (int b = 0; b < stage.bonuses().size(); b++) {
                         if (b > 0) line.append(", ");

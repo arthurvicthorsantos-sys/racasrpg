@@ -3,7 +3,9 @@ package com.racasrpg.race;
 import java.util.Arrays;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.racasrpg.RacasRpg;
+import com.racasrpg.net.ModNetwork;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -22,10 +24,21 @@ public class RaceCommands {
     public static void onRegisterCommands(RegisterCommandsEvent event) {
         event.getDispatcher().register(
                 Commands.literal("raca")
+                        // /raca -> abre o menu
                         .executes(ctx -> {
-                            RaceManager.sendStatus(ctx.getSource().getPlayerOrException());
+                            ModNetwork.openMenu(ctx.getSource().getPlayerOrException());
                             return 1;
                         })
+                        .then(Commands.literal("menu")
+                                .executes(ctx -> {
+                                    ModNetwork.openMenu(ctx.getSource().getPlayerOrException());
+                                    return 1;
+                                }))
+                        .then(Commands.literal("status")
+                                .executes(ctx -> {
+                                    RaceManager.sendStatus(ctx.getSource().getPlayerOrException());
+                                    return 1;
+                                }))
                         .then(Commands.literal("info")
                                 .executes(ctx -> {
                                     RaceManager.sendInfo(ctx.getSource().getPlayerOrException());
@@ -45,24 +58,26 @@ public class RaceCommands {
                         .then(Commands.literal("resetar")
                                 .requires(source -> source.hasPermission(2))
                                 .executes(ctx -> {
-                                    RaceManager.reset(ctx.getSource().getPlayerOrException());
+                                    ServerPlayer player = ctx.getSource().getPlayerOrException();
+                                    RaceManager.reset(player);
                                     ctx.getSource().sendSuccess(
-                                            () -> Component.literal("Raca removida.").withStyle(ChatFormatting.YELLOW),
+                                            () -> Component.literal("Raça removida. Use /raca para escolher outra.")
+                                                    .withStyle(ChatFormatting.YELLOW),
                                             false);
                                     return 1;
                                 }))
         );
     }
 
-    private static int choose(CommandSourceStack source, String id) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+    private static int choose(CommandSourceStack source, String id) throws CommandSyntaxException {
         ServerPlayer player = source.getPlayerOrException();
         Race race = Race.byId(id);
         if (race == null) {
-            source.sendFailure(Component.literal("Raca desconhecida. Opcoes: humano, elfo, anao, orc."));
+            source.sendFailure(Component.literal("Raça desconhecida. Opções: " + Race.allIds()));
             return 0;
         }
         if (!RaceManager.choose(player, race)) {
-            source.sendFailure(Component.literal("Voce ja tem uma raca."));
+            source.sendFailure(Component.literal("Você já tem uma raça."));
             return 0;
         }
         return 1;
